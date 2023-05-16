@@ -13,7 +13,7 @@
                                 "RUN_ADDRESS":":8080",
                                 "DATABASE_URI":"postgres://postgres:qetuo@localhost:5432/test",
                         },
-                        "program": "${workspaceFolder}/cmd"
+                        "program": "${workspaceFolder}/cmd/gophermart"
 
 //                       "program": "${fileDirname}"
                 }
