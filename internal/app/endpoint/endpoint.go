@@ -126,6 +126,7 @@ func (e *Endpoint) UserOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	buf := model.MarshalUserOrdersDoc(res...)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf)
 }
@@ -155,6 +156,7 @@ func (e *Endpoint) NewWithdraw(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Ok"))
 }
@@ -170,6 +172,7 @@ func (e *Endpoint) UserWithdraws(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	buf := model.MarshalUserWithdrawsDoc(res...)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf)
 }
@@ -181,6 +184,7 @@ func (e *Endpoint) UserBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	buf := model.MarshalUserBalanceDoc(res)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf)
 }
