@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"strconv"
 	"yp-diploma/internal/app/config"
 )
 
@@ -92,4 +93,25 @@ func EncodeString(msg string) (string, error) {
 	encbuf := aesgcm.Seal(nil, nonce, buf, nil)
 
 	return hex.EncodeToString(encbuf), nil
+}
+
+func LuhnCheck(num string) bool {
+	if len(num) == 0 {
+		return false
+	}
+	sum := 0
+	for i := 0; i < len(num); i++ {
+		n, err := strconv.Atoi(string(num[i]))
+		if err != nil {
+			return false
+		}
+		if i%2 == len(num)%2 {
+			n = n * 2
+			if n > 9 {
+				n = n - 9
+			}
+		}
+		sum += n
+	}
+	return sum%10 == 0
 }

@@ -2,10 +2,13 @@ package endpoint
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 	"yp-diploma/internal/app/config"
+	"yp-diploma/internal/app/model"
 	"yp-diploma/internal/app/service"
 )
 
@@ -82,4 +85,102 @@ func (e *Endpoint) Login(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 	w.WriteHeader(http.StatusOK)
 
+}
+
+func (e *Endpoint) NewOrder(w http.ResponseWriter, r *http.Request) {
+	buf, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	str := strings.Split(string(buf), "\n")
+	for _, num := range str {
+		num = strings.TrimSpace(string(num))
+		err = e.srv.NewOrder(r.Context(), num)
+		if err != nil {
+			switch err {
+			case config.ErrOrderRegisteredByUser:
+				http.Error(w, err.Error(), http.StatusOK)
+			case config.ErrLuhnCheckFailed:
+				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			case config.ErrOrderRegistered:
+				http.Error(w, err.Error(), http.StatusConflict)
+			default:
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+		w.Write([]byte(fmt.Sprintf("%s - Ok \n", num)))
+	}
+}
+
+func (e *Endpoint) UserOrders(w http.ResponseWriter, r *http.Request) {
+	res, err := e.srv.GetOrdersList(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(res) == 0 {
+		http.Error(w, "no data", http.StatusNoContent)
+		return
+	}
+	buf := model.MarshalUserOrdersDoc(res...)
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf)
+}
+
+func (e *Endpoint) NewWithdraw(w http.ResponseWriter, r *http.Request) {
+	buf, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	wd := model.WithdrawReq{}
+	err = json.Unmarshal(buf, &wd)
+	if err != nil || wd.OrderID == "" || wd.Withdraw <= 0 {
+		http.Error(w, "error in request", http.StatusUnprocessableEntity)
+		return
+	}
+
+	err = e.srv.NewWithdraw(r.Context(), wd)
+	if err != nil {
+		switch err {
+		case config.ErrNoSuchOrder:
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		case config.ErrNotEnoughAccruals:
+			http.Error(w, err.Error(), http.StatusPaymentRequired)
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Ok"))
+}
+
+func (e *Endpoint) UserWithdraws(w http.ResponseWriter, r *http.Request) {
+	res, err := e.srv.GetWithdrawList(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(res) == 0 {
+		http.Error(w, "no data", http.StatusNoContent)
+		return
+	}
+	buf := model.MarshalUserWithdrawsDoc(res...)
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf)
+}
+
+func (e *Endpoint) UserBalance(w http.ResponseWriter, r *http.Request) {
+	res, err := e.srv.GetBalance(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	buf := model.MarshalUserBalanceDoc(res)
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf)
 }

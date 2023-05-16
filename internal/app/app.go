@@ -45,12 +45,21 @@ func New() *App {
 	a.r.Group(func(r chi.Router) {
 		r.Use(a.lh.AuthUser)
 		r.Get("/", a.e.Info)
+		r.Post("/api/user/orders", a.e.NewOrder)
+		r.Get("/api/user/orders", a.e.UserOrders)
+		r.Get("/api/user/balance", a.e.UserBalance)
+		r.Post("/api/user/balance/withdraw", a.e.NewWithdraw)
+		r.Get("/api/user/withdrawals", a.e.UserWithdraws)
 	})
 	return a
 }
 
 func (a *App) Run() error {
 	err := a.db.Init(context.Background(), a.c.PgConnString)
+	if err != nil {
+		return err
+	}
+	err = a.s.ServeUndoneOrders(context.Background())
 	if err != nil {
 		return err
 	}

@@ -37,5 +37,10 @@ func New() *Config {
 }
 
 var (
-	ErrNoSuchRecord = errors.New("no such record")
+	ErrNoSuchRecord          = errors.New("no such record")
+	ErrLuhnCheckFailed       = errors.New("luhn check failed")
+	ErrOrderRegisteredByUser = errors.New("same order registered by customer")
+	ErrOrderRegistered       = errors.New("same order registered in system")
+	ErrNoSuchOrder           = errors.New("customer does not have such an order")
+	ErrNotEnoughAccruals     = errors.New("not enough accruals")
 )

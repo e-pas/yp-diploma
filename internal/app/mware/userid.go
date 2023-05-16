@@ -7,15 +7,19 @@ import (
 	"time"
 
 	"yp-diploma/internal/app/config"
-	"yp-diploma/internal/app/repository"
+	"yp-diploma/internal/app/model"
 	"yp-diploma/internal/app/util"
 )
 
-type LoginHandler struct {
-	repo *repository.Repository
+type loginsaver interface {
+	GetSessKey(ctx context.Context, key string) (model.SessKey, error)
 }
 
-func NewLoginHandler(repo *repository.Repository) *LoginHandler {
+type LoginHandler struct {
+	repo loginsaver
+}
+
+func NewLoginHandler(repo loginsaver) *LoginHandler {
 	return &LoginHandler{
 		repo: repo,
 	}
@@ -49,8 +53,8 @@ func (lh *LoginHandler) AuthUser(next http.Handler) http.Handler {
 			http.Error(w, "Unautorized", http.StatusUnauthorized)
 			return
 		}
-		ctx := context.WithValue(r.Context(), config.ContextKeyUserID, key.User_ID)
-		log.Printf("User id: %s", key.User_ID)
+		ctx := context.WithValue(r.Context(), config.ContextKeyUserID, key.UserID)
+		log.Printf("User id: %s", key.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)

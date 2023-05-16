@@ -10,6 +10,6 @@ type User struct {
 
 type SessKey struct {
 	ID      string
-	User_ID string
+	UserID  string
 	Expires time.Time
 }
