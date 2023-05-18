@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"time"
 	"yp-diploma/internal/app/config"
@@ -40,7 +39,7 @@ func (s *Service) LoginUser(ctx context.Context, name, password string) (string,
 	}
 
 	if !CheckPasswd(password, user.HashedPasswd) {
-		return "", errors.New("invalid password")
+		return "", config.ErrUserInvalidPassword
 	}
 
 	cryptKey := s.genSessKey(ctx, user)

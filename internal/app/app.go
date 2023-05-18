@@ -28,7 +28,7 @@ func New() *App {
 	a.c = config.New()
 	a.db = repository.New()
 	a.lh = mware.NewLoginHandler(a.db)
-	a.s = service.New(a.db)
+	a.s = service.New(a.db, a.c)
 	a.e = endpoint.New(a.c, a.s)
 	a.r = chi.NewRouter()
 

@@ -2,12 +2,15 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"yp-diploma/internal/app/config"
 	"yp-diploma/internal/app/model"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -76,9 +79,9 @@ const (
 	getBalance      = "SELECT user_id, COALESCE(asum,0), COALESCE(wsum,0), COALESCE(bal,0) FROM balances WHERE user_id = $1;"
 	addWithdraw     = "INSERT INTO withdraws (order_id, regdate, withdraw) VALUES ($1, $2, $3);"
 	getWithdraws    = `SELECT w.order_id, w.regdate, w.withdraw 
-					   FROM withdraws w, orders o
-					  WHERE w.order_id = o.id
-					   	AND o.user_id = $1;`
+					     FROM  withdraws w, orders o
+					     WHERE w.order_id = o.id
+					       AND o.user_id = $1;`
 )
 
 type Repository struct {
@@ -100,16 +103,22 @@ func (r *Repository) Init(ctx context.Context, conn string) error {
 	}
 	r.pool = pool
 
-	return r.InitDDL(ctx)
+	return r.initDDL(ctx)
 }
 
-func (r *Repository) InitDDL(ctx context.Context) error {
+func (r *Repository) initDDL(ctx context.Context) error {
 	_, err := r.pool.Exec(ctx, DDL)
 	return err
 }
 
 func (r *Repository) AddUser(ctx context.Context, user model.User) error {
+	var pgerr *pgconn.PgError
 	_, err := r.pool.Exec(ctx, addUser, user.ID, user.Name, user.HashedPasswd)
+	if err != nil {
+		if errors.As(err, &pgerr) && strings.EqualFold(pgerr.ConstraintName, "users_name_key") {
+			return config.ErrUserNameBusy
+		}
+	}
 	return err
 }
 
@@ -117,6 +126,12 @@ func (r *Repository) GetUserID(ctx context.Context, name string) (model.User, er
 	var res model.User
 	row := r.pool.QueryRow(ctx, getUser, name)
 	err := row.Scan(&res.ID, &res.Name, &res.HashedPasswd)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return res, config.ErrNoSuchRecord
+		}
+		return res, err
+	}
 	return res, err
 }
 
@@ -142,7 +157,7 @@ func (r *Repository) GetOrder(ctx context.Context, orderID string) (model.Order,
 	row := r.pool.QueryRow(ctx, getOrder, orderID)
 	err := row.Scan(&res.ID, &res.UserID, &res.GenTime, &res.Accrual)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return res, config.ErrNoSuchRecord
 		}
 		return res, err

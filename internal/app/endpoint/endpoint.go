@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -32,7 +33,8 @@ func (e *Endpoint) Info(w http.ResponseWriter, r *http.Request) {
 func (e *Endpoint) Register(w http.ResponseWriter, r *http.Request) {
 	buf, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		log.Printf("error creating user\n error: %s", err.Error())
 		return
 	}
 	req := make(map[string]string, 0)
@@ -44,10 +46,16 @@ func (e *Endpoint) Register(w http.ResponseWriter, r *http.Request) {
 
 	cryptKey, err := e.srv.RegisterUser(r.Context(), req["login"], req["password"])
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusConflict)
-		return
+		switch err {
+		case config.ErrUserNameBusy:
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		default:
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			log.Printf("error creating user: %s\n error: %s", req["login"], err.Error())
+			return
+		}
 	}
-
 	cookie := http.Cookie{
 		Name:    config.CookieName,
 		Value:   cryptKey,
@@ -72,8 +80,15 @@ func (e *Endpoint) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	cryptKey, err := e.srv.LoginUser(r.Context(), req["login"], req["password"])
 	if err != nil {
-		http.Error(w, "Unautorized", http.StatusUnauthorized)
-		return
+		switch err {
+		case config.ErrUserInvalidPassword, config.ErrNoSuchRecord:
+			http.Error(w, "Unautorized", http.StatusUnauthorized)
+			return
+		default:
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			log.Printf("error autorize user: %s\n error: %s", req["login"], err.Error())
+			return
+		}
 	}
 
 	cookie := http.Cookie{
@@ -84,13 +99,13 @@ func (e *Endpoint) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 	w.WriteHeader(http.StatusOK)
-
 }
 
 func (e *Endpoint) NewOrder(w http.ResponseWriter, r *http.Request) {
 	buf, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		log.Printf("error creating order:\n error: %s", err.Error())
 		return
 	}
 	str := strings.Split(string(buf), "\n")
@@ -118,7 +133,8 @@ func (e *Endpoint) NewOrder(w http.ResponseWriter, r *http.Request) {
 func (e *Endpoint) UserOrders(w http.ResponseWriter, r *http.Request) {
 	res, err := e.srv.GetOrdersList(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		log.Printf("error getting orders:\n error: %s", err.Error())
 		return
 	}
 	if len(res) == 0 {

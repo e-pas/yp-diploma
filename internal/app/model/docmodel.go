@@ -26,6 +26,12 @@ type WithdrawReq struct {
 	Withdraw int    `json:"sum"`
 }
 
+type AccrualResp struct {
+	OrderID string `json:"order"`
+	Status  string `json:"status"`
+	Accrual int    `json:"accrual"`
+}
+
 func MarshalUserOrdersDoc(orders ...Order) []byte {
 	if len(orders) == 0 {
 		return []byte{}
@@ -63,4 +69,13 @@ func MarshalUserBalanceDoc(balance Balance) []byte {
 	}
 	buf, _ := json.MarshalIndent(doc, "", " ")
 	return buf
+}
+
+func UnmarshalAcrrualResponse(buf []byte) (AccrualResp, error) {
+	res := AccrualResp{}
+	err := json.Unmarshal(buf, &res)
+	if err != nil {
+		return AccrualResp{}, err
+	}
+	return res, nil
 }
