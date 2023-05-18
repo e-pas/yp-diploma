@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log"
-	"math/rand"
+	"net/http"
 	"time"
 	"yp-diploma/internal/app/config"
 	"yp-diploma/internal/app/model"
@@ -47,9 +49,11 @@ func (s *Service) GetOrdersList(ctx context.Context) ([]model.Order, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Проверяем есть ли заказы покупателя еще в процессе обработки
 	for i := range orderList {
 		procOrder, err := s.orderPool.GetJobByID(orderList[i].ID)
 		if err == nil {
+			// если такие заказы есть, то берем этот заказ со статусом из очереди обработки
 			orderList[i] = procOrder
 		}
 	}
@@ -76,22 +80,43 @@ func (s *Service) GetAccrual(ctx context.Context, jobOrder model.Order) (model.O
 		return res, nil
 	}
 
-	i := rand.Intn(10)
+	addr := fmt.Sprintf("%s/api/orders/%s", s.conf.AccrualSystem, res.ID)
+	resp, err := http.Get(addr)
+	if err != nil {
+		log.Printf("gett error: %w", err)
+		return res, config.ErrGetAccrual
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("order: %s, accrual server return status code: %d", res.ID, resp.StatusCode)
+		return res, config.ErrNoSuchOrder
+	}
 
-	time.Sleep(time.Duration(i / 2 * int(time.Second)))
-	switch {
-	case i > 8:
-		log.Printf("order: %s, Error genereted", res.ID)
-		return res, config.ErrNoSuchRecord
-	case i < 3:
+	log.Printf("order: %s, accrual server return status code: %d", res.ID, resp.StatusCode)
+	buf, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("read response body error: %s", err.Error())
+		return res, config.ErrUnsupportedResponse
+	}
+	AccrRes, err := model.UnmarshalAcrrualResponse(buf)
+	if err != nil {
+		return res, err
+	}
+	switch AccrRes.Status {
+	case "REGISTERED", "PROCESSING":
+		// ничего не делаем, ждем следующей итерации
+		return res, nil
+	case "INVALID":
 		res.Status = model.Invalid
 		log.Printf("order: %s, status Invalid", res.ID)
 		return res, nil
-	default:
+	case "PROCESSED":
 		res.Status = model.Processed
-		res.Accrual = i * 100
+		res.Accrual = AccrRes.Accrual
 		log.Printf("order: %s, status Ok, Accr:%d", res.ID, res.Accrual)
 		return res, nil
+	default:
+		log.Printf("unsopported response body: \n%s ", string(buf))
+		return res, config.ErrUnsupportedResponse
 	}
 }
 
