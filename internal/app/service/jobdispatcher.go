@@ -37,7 +37,8 @@ func NewDispatcher(ctx context.Context, jpool *jobPool, jFunc jobFunc, rFunc res
 
 func (jd *jobDispatcher) Dispatch() {
 	go func() {
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:

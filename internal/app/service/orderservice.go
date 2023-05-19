@@ -88,7 +88,6 @@ func (s *Service) GetAccrual(ctx context.Context, jobOrder model.Order) (model.O
 		log.Printf("get error: %s", err)
 		return res, config.ErrGetAccrual
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("order: %s, accrual server return status code: %d", res.ID, resp.StatusCode)
 		return res, config.ErrNoSuchOrder

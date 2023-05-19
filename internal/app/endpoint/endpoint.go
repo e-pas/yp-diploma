@@ -135,7 +135,6 @@ func (e *Endpoint) NewOrder(w http.ResponseWriter, r *http.Request) {
 
 func (e *Endpoint) UserOrders(w http.ResponseWriter, r *http.Request) {
 	res, err := e.srv.GetOrdersList(r.Context())
-	log.Printf("%v", res)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
