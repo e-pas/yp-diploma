@@ -50,13 +50,13 @@ func (s *Service) GetOrdersList(ctx context.Context) ([]model.Order, error) {
 		return nil, err
 	}
 	// Проверяем есть ли заказы покупателя еще в процессе обработки
-	// for i := range orderList {
-	// 	procOrder, err := s.orderPool.GetJobByID(orderList[i].ID)
-	// 	if err == nil {
-	// 		// если такие заказы есть, то берем этот заказ со статусом из очереди обработки
-	// 		orderList[i] = procOrder
-	// 	}
-	// }
+	for i := range orderList {
+		procOrder, err := s.orderPool.GetJobByID(orderList[i].ID)
+		if err == nil {
+			// если такие заказы есть, то берем этот заказ со статусом из очереди обработки
+			orderList[i] = procOrder
+		}
+	}
 	return orderList, nil
 }
 

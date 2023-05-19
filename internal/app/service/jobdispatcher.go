@@ -14,7 +14,7 @@ type resultFunc = func(ctx context.Context, jobOrders []model.Order) ([]model.Or
 
 type jobPool struct {
 	pool map[string]model.Order
-	mu   sync.Mutex
+	mu   sync.RWMutex
 }
 
 type jobDispatcher struct {
@@ -102,8 +102,8 @@ func (jp *jobPool) Delete(job model.Order) {
 }
 
 func (jp *jobPool) GetJobByID(id string) (model.Order, error) {
-	jp.mu.Lock()
-	defer jp.mu.Unlock()
+	jp.mu.RLock()
+	defer jp.mu.RUnlock()
 	res, ok := jp.pool[id]
 	if !ok {
 		return model.Order{}, config.ErrNoSuchRecord
@@ -112,8 +112,8 @@ func (jp *jobPool) GetJobByID(id string) (model.Order, error) {
 }
 
 func (jp *jobPool) CopyState() []model.Order {
-	jp.mu.Lock()
-	defer jp.mu.Unlock()
+	jp.mu.RLock()
+	defer jp.mu.RUnlock()
 	res := make([]model.Order, 0)
 	for _, el := range jp.pool {
 		res = append(res, el)
