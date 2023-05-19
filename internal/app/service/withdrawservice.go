@@ -7,13 +7,9 @@ import (
 	"yp-diploma/internal/app/model"
 )
 
-func (s *Service) NewWithdraw(ctx context.Context, wsReq model.WithdrawReq) error {
+func (s *Service) NewWithdraw(ctx context.Context, ws model.Withdraw) error {
 	userID := ctx.Value(config.ContextKeyUserID).(string)
-	ws := model.Withdraw{
-		OrderID:  wsReq.OrderID,
-		Withdraw: wsReq.Withdraw,
-		GenTime:  time.Now(),
-	}
+	ws.GenTime = time.Now()
 
 	order, err := s.repo.GetOrder(ctx, ws.OrderID)
 	if err != nil || order.UserID != userID {

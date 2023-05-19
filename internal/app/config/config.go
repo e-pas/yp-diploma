@@ -44,6 +44,7 @@ func New() *Config {
 var (
 	ErrUserNameBusy          = errors.New("user name busy")
 	ErrUserInvalidPassword   = errors.New("invalid password")
+	ErrInvalidData           = errors.New("invalid data")
 	ErrNoSuchRecord          = errors.New("no such record")
 	ErrLuhnCheckFailed       = errors.New("luhn check failed")
 	ErrOrderRegisteredByUser = errors.New("same order registered by customer")

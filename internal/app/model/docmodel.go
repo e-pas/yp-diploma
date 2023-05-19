@@ -1,35 +1,81 @@
 package model
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+	"yp-diploma/internal/app/config"
+)
+
+type docTime time.Time
+type points uint
+
+func (dt docTime) MarshalJSON() ([]byte, error) {
+	res := fmt.Sprintf("\"%s\"", time.Time(dt).Format("2006-01-02T15:04:05-07:00"))
+	return []byte(res), nil
+}
+
+func (p points) MarshalJSON() ([]byte, error) {
+	res := fmt.Sprintf("%d.%d", p/100, p%100)
+	if p%100 == 0 {
+		res = fmt.Sprintf("%d", p/100)
+	}
+	return []byte(res), nil
+}
+
+func (p *points) UnmarshalJSON(data []byte) error {
+	parts := strings.Split(string(data), ".")
+	if len(parts) > 2 {
+		return config.ErrInvalidData
+	}
+	if len(parts) == 1 {
+		parts = append(parts, "0")
+	}
+	res1, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return err
+	}
+	res2, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return err
+	}
+	if res1 < 0 || res2 < 0 {
+		return config.ErrInvalidData
+	}
+	*p = points(res1*100 + res2)
+	return nil
+}
 
 type orderDoc struct {
 	ID      string     `json:"number"`
 	Status  StatusName `json:"status"`
-	Accrual int        `json:"accrual,omitempty"`
+	Accrual points     `json:"accrual,omitempty"`
 	GenTime docTime    `json:"uploaded_at"`
 }
 
 type withdrawDoc struct {
 	OrderID  string  `json:"order"`
-	Withdraw int     `json:"sum"`
+	Withdraw points  `json:"sum"`
 	GenTime  docTime `json:"processed_at"`
 }
 
 type balanceDoc struct {
-	Balance  int `json:"current"`
-	Accrual  int `json:"-"`
-	Withdraw int `json:"withdraw,omitempty"`
+	Balance  points `json:"current"`
+	Accrual  points `json:"-"`
+	Withdraw points `json:"withdraw,omitempty"`
 }
 
-type WithdrawReq struct {
+type withdrawReq struct {
 	OrderID  string `json:"order"`
-	Withdraw int    `json:"sum"`
+	Withdraw points `json:"sum"`
 }
 
-type AccrualResp struct {
+type accrualResp struct {
 	OrderID string `json:"order"`
 	Status  string `json:"status"`
-	Accrual int    `json:"accrual"`
+	Accrual points `json:"accrual"`
 }
 
 func MarshalUserOrdersDoc(orders ...Order) []byte {
@@ -40,7 +86,7 @@ func MarshalUserOrdersDoc(orders ...Order) []byte {
 	for i := range orders {
 		docs[i].ID = orders[i].ID
 		docs[i].GenTime = docTime(orders[i].GenTime)
-		docs[i].Accrual = orders[i].Accrual
+		docs[i].Accrual = points(orders[i].Accrual)
 		docs[i].Status = Statuses[orders[i].Status]
 	}
 	buf, _ := json.MarshalIndent(docs, "", " ")
@@ -55,27 +101,43 @@ func MarshalUserWithdrawsDoc(withdraws ...Withdraw) []byte {
 	for i := range withdraws {
 		docs[i].OrderID = withdraws[i].OrderID
 		docs[i].GenTime = docTime(withdraws[i].GenTime)
-		docs[i].Withdraw = withdraws[i].Withdraw
+		docs[i].Withdraw = points(withdraws[i].Withdraw)
 	}
 	buf, _ := json.MarshalIndent(docs, "", " ")
 	return buf
 }
 
+func UnmarshalWithdrawRequest(buf []byte) (Withdraw, error) {
+	req := withdrawReq{}
+	err := json.Unmarshal(buf, &req)
+	if err != nil {
+		return Withdraw{}, err
+	}
+	return Withdraw{
+		OrderID:  req.OrderID,
+		Withdraw: int(req.Withdraw),
+	}, nil
+}
+
 func MarshalUserBalanceDoc(balance Balance) []byte {
 	doc := balanceDoc{
-		Accrual:  balance.Accrual,
-		Withdraw: balance.Withdraw,
-		Balance:  balance.Balance,
+		Accrual:  points(balance.Accrual),
+		Withdraw: points(balance.Withdraw),
+		Balance:  points(balance.Balance),
 	}
 	buf, _ := json.MarshalIndent(doc, "", " ")
 	return buf
 }
 
-func UnmarshalAcrrualResponse(buf []byte) (AccrualResp, error) {
-	res := AccrualResp{}
-	err := json.Unmarshal(buf, &res)
+func UnmarshalAcrrualResponse(buf []byte) (Accrual, error) {
+	req := accrualResp{}
+	err := json.Unmarshal(buf, &req)
 	if err != nil {
-		return AccrualResp{}, err
+		return Accrual{}, err
 	}
-	return res, nil
+	return Accrual{
+		OrderID: req.OrderID,
+		Status:  req.Status,
+		Accrual: int(req.Accrual),
+	}, nil
 }

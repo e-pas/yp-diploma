@@ -71,6 +71,8 @@ func (s *Service) ServeUndoneOrders(ctx context.Context) error {
 	}
 	return nil
 }
+
+// callback функция выполняется процессором для каждого заказа
 func (s *Service) GetAccrual(ctx context.Context, jobOrder model.Order) (model.Order, error) {
 	res := jobOrder
 	if res.Status != model.Processing {
@@ -83,7 +85,7 @@ func (s *Service) GetAccrual(ctx context.Context, jobOrder model.Order) (model.O
 	addr := fmt.Sprintf("%s/api/orders/%s", s.conf.AccrualSystem, res.ID)
 	resp, err := http.Get(addr)
 	if err != nil {
-		log.Printf("gett error: %w", err)
+		log.Printf("get error: %w", err)
 		return res, config.ErrGetAccrual
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -104,14 +106,14 @@ func (s *Service) GetAccrual(ctx context.Context, jobOrder model.Order) (model.O
 	switch AccrRes.Status {
 	case "REGISTERED", "PROCESSING":
 		// ничего не делаем, ждем следующей итерации
-		return res, nil
+		return jobOrder, nil
 	case "INVALID":
 		res.Status = model.Invalid
 		log.Printf("order: %s, status Invalid", res.ID)
 		return res, nil
 	case "PROCESSED":
 		res.Status = model.Processed
-		res.Accrual = AccrRes.Accrual
+		res.Accrual = int(AccrRes.Accrual)
 		log.Printf("order: %s, status Ok, Accr:%d", res.ID, res.Accrual)
 		return res, nil
 	default:
@@ -120,9 +122,23 @@ func (s *Service) GetAccrual(ctx context.Context, jobOrder model.Order) (model.O
 	}
 }
 
-func (s *Service) SaveResults(ctx context.Context, doneOrders []model.Order) error {
+// callback функция, получает обработанные заказы,
+// сохраняет в БД зазказы с окончательными результатами
+// возвращает список сохраненных заказов
+func (s *Service) SaveResults(ctx context.Context, doneOrders []model.Order) ([]model.Order, error) {
+	saveOrders := make([]model.Order, 0)
 	for i, order := range doneOrders {
 		log.Printf("result %d/%d job:%s, status:%d, accrual:%d, user:%s", i+1, len(doneOrders), order.ID, order.Status, order.Accrual, order.UserID)
+		switch order.Status {
+		case model.Processed, model.Invalid:
+			saveOrders = append(saveOrders, order)
+		default:
+			continue
+		}
 	}
-	return s.repo.UpdateAccruals(ctx, doneOrders)
+	err := s.repo.UpdateAccruals(ctx, saveOrders)
+	if err != nil {
+		return nil, err
+	}
+	return saveOrders, nil
 }

@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -17,13 +16,6 @@ const (
 type StatusName string
 
 var Statuses = []StatusName{"NEW", "PROCESSING", "INVALID", "PROCESSED"}
-
-type docTime time.Time
-
-func (dt docTime) MarshalJSON() ([]byte, error) {
-	res := fmt.Sprintf("\"%s\"", time.Time(dt).Format("2006-01-02T15:04:05-07:00"))
-	return []byte(res), nil
-}
 
 type Order struct {
 	ID      string
@@ -44,4 +36,10 @@ type Withdraw = struct {
 	OrderID  string
 	GenTime  time.Time
 	Withdraw int
+}
+
+type Accrual struct {
+	OrderID string
+	Status  string
+	Accrual int
 }

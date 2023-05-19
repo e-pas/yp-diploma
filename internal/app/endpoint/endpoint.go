@@ -153,8 +153,7 @@ func (e *Endpoint) NewWithdraw(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	wd := model.WithdrawReq{}
-	err = json.Unmarshal(buf, &wd)
+	wd, err := model.UnmarshalWithdrawRequest(buf)
 	if err != nil || wd.OrderID == "" || wd.Withdraw <= 0 {
 		http.Error(w, "error in request", http.StatusUnprocessableEntity)
 		return

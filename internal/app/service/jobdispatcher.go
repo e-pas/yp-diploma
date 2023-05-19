@@ -10,7 +10,7 @@ import (
 )
 
 type jobFunc = func(ctx context.Context, jobOrder model.Order) (model.Order, error)
-type resultFunc = func(ctx context.Context, jobOrders []model.Order) error
+type resultFunc = func(ctx context.Context, jobOrders []model.Order) ([]model.Order, error)
 
 type jobPool struct {
 	pool map[string]model.Order
@@ -36,12 +36,13 @@ func NewDispatcher(ctx context.Context, jpool *jobPool, jFunc jobFunc, rFunc res
 }
 
 func (jd *jobDispatcher) Dispatch() {
-	ticker := time.NewTicker(30 * time.Second)
 	go func() {
+		ticker := time.NewTicker(30 * time.Second)
 		for {
 			select {
 			case <-ticker.C:
 				// берем текущее состояние заданий в пуле.
+				log.Println("tic")
 				jobs := jd.jobsPool.CopyState()
 				if len(jobs) == 0 {
 					continue
@@ -68,7 +69,7 @@ func (jd *jobDispatcher) Dispatch() {
 
 				// полученные результаты предаем во вторую callback функцию, и, есди она завершилась
 				// без ошибок, удаляем обработанные задания из пула.
-				err := jd.resFunc(jd.ctx, jobs)
+				jobs, err := jd.resFunc(jd.ctx, jobs)
 				if err == nil {
 					for _, job := range jobs {
 						jd.jobsPool.Delete(job)
