@@ -85,9 +85,10 @@ func (s *Service) GetAccrual(ctx context.Context, jobOrder model.Order) (model.O
 	addr := fmt.Sprintf("%s/api/orders/%s", s.conf.AccrualSystem, res.ID)
 	resp, err := http.Get(addr)
 	if err != nil {
-		log.Printf("get error: %w", err)
+		log.Printf("get error: %s", err)
 		return res, config.ErrGetAccrual
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("order: %s, accrual server return status code: %d", res.ID, resp.StatusCode)
 		return res, config.ErrNoSuchOrder
@@ -106,7 +107,7 @@ func (s *Service) GetAccrual(ctx context.Context, jobOrder model.Order) (model.O
 	switch AccrRes.Status {
 	case "REGISTERED", "PROCESSING":
 		// ничего не делаем, ждем следующей итерации
-		return jobOrder, nil
+		return res, nil
 	case "INVALID":
 		res.Status = model.Invalid
 		log.Printf("order: %s, status Invalid", res.ID)
