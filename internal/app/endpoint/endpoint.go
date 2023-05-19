@@ -132,13 +132,18 @@ func (e *Endpoint) NewOrder(w http.ResponseWriter, r *http.Request) {
 
 func (e *Endpoint) UserOrders(w http.ResponseWriter, r *http.Request) {
 	res, err := e.srv.GetOrdersList(r.Context())
+	log.Printf("%v", res)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		log.Printf("error getting orders:\n error: %s", err.Error())
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		//		http.Error(w, "internal server error", http.StatusInternalServerError)
+		log.Printf("error getting orders:\n error: %s", err)
 		return
 	}
 	if len(res) == 0 {
-		http.Error(w, "no data", http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNoContent)
+		//		http.Error(w, "no data", http.StatusNoContent)
 		return
 	}
 	buf := model.MarshalUserOrdersDoc(res...)

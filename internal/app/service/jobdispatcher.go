@@ -42,7 +42,6 @@ func (jd *jobDispatcher) Dispatch() {
 			select {
 			case <-ticker.C:
 				// берем текущее состояние заданий в пуле.
-				log.Println("tic")
 				jobs := jd.jobsPool.CopyState()
 				if len(jobs) == 0 {
 					continue
