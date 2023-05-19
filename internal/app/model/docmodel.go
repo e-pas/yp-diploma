@@ -78,7 +78,7 @@ type accrualResp struct {
 	Accrual points `json:"accrual"`
 }
 
-func MarshalUserOrdersDoc(orders ...Order) []byte {
+func MarshalUserOrdersDoc(orders []Order) []byte {
 	if len(orders) == 0 {
 		return []byte{}
 	}
@@ -93,7 +93,7 @@ func MarshalUserOrdersDoc(orders ...Order) []byte {
 	return buf
 }
 
-func MarshalUserWithdrawsDoc(withdraws ...Withdraw) []byte {
+func MarshalUserWithdrawsDoc(withdraws []Withdraw) []byte {
 	if len(withdraws) == 0 {
 		return []byte{}
 	}

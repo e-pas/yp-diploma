@@ -90,20 +90,20 @@ func NewJobPool() *jobPool {
 	return jp
 }
 func (jp *jobPool) PushJob(newJob model.Order) {
-	// jp.mu.Lock()
-	// defer jp.mu.Unlock()
+	jp.mu.Lock()
+	defer jp.mu.Unlock()
 	jp.pool[newJob.ID] = newJob
 }
 
 func (jp *jobPool) Delete(job model.Order) {
-	// jp.mu.Lock()
-	// defer jp.mu.Unlock()
+	jp.mu.Lock()
+	defer jp.mu.Unlock()
 	delete(jp.pool, job.ID)
 }
 
 func (jp *jobPool) GetJobByID(id string) (model.Order, error) {
-	// jp.mu.RLock()
-	// defer jp.mu.RUnlock()
+	jp.mu.RLock()
+	defer jp.mu.RUnlock()
 	res, ok := jp.pool[id]
 	if !ok {
 		return model.Order{}, config.ErrNoSuchRecord
@@ -112,8 +112,8 @@ func (jp *jobPool) GetJobByID(id string) (model.Order, error) {
 }
 
 func (jp *jobPool) CopyState() []model.Order {
-	// jp.mu.RLock()
-	// defer jp.mu.RUnlock()
+	jp.mu.RLock()
+	defer jp.mu.RUnlock()
 	res := make([]model.Order, 0)
 	for _, el := range jp.pool {
 		res = append(res, el)

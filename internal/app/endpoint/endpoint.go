@@ -103,6 +103,7 @@ func (e *Endpoint) Login(w http.ResponseWriter, r *http.Request) {
 
 func (e *Endpoint) NewOrder(w http.ResponseWriter, r *http.Request) {
 	buf, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
 	if err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		log.Printf("error creating order:\n error: %s", err.Error())
@@ -146,7 +147,7 @@ func (e *Endpoint) UserOrders(w http.ResponseWriter, r *http.Request) {
 		//		http.Error(w, "no data", http.StatusNoContent)
 		return
 	}
-	buf := model.MarshalUserOrdersDoc(res...)
+	buf := model.MarshalUserOrdersDoc(res)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf)
@@ -191,7 +192,7 @@ func (e *Endpoint) UserWithdraws(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no data", http.StatusNoContent)
 		return
 	}
-	buf := model.MarshalUserWithdrawsDoc(res...)
+	buf := model.MarshalUserWithdrawsDoc(res)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf)
