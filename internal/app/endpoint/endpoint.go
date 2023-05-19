@@ -37,6 +37,7 @@ func (e *Endpoint) Register(w http.ResponseWriter, r *http.Request) {
 		log.Printf("error creating user\n error: %s", err.Error())
 		return
 	}
+	defer r.Body.Close()
 	req := make(map[string]string, 0)
 	err = json.Unmarshal(buf, &req)
 	if err != nil || req["login"] == "" || req["password"] == "" {
@@ -72,6 +73,7 @@ func (e *Endpoint) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	defer r.Body.Close()
 	req := make(map[string]string, 0)
 	err = json.Unmarshal(buf, &req)
 	if err != nil || req["login"] == "" || req["password"] == "" {
@@ -103,12 +105,12 @@ func (e *Endpoint) Login(w http.ResponseWriter, r *http.Request) {
 
 func (e *Endpoint) NewOrder(w http.ResponseWriter, r *http.Request) {
 	buf, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
 	if err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		log.Printf("error creating order:\n error: %s", err.Error())
 		return
 	}
+	defer r.Body.Close()
 	str := strings.Split(string(buf), "\n")
 	for _, num := range str {
 		num = strings.TrimSpace(string(num))
@@ -159,6 +161,7 @@ func (e *Endpoint) NewWithdraw(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	defer r.Body.Close()
 	wd, err := model.UnmarshalWithdrawRequest(buf)
 	if err != nil || wd.OrderID == "" || wd.Withdraw <= 0 {
 		http.Error(w, "error in request", http.StatusUnprocessableEntity)

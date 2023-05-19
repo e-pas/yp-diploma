@@ -100,6 +100,7 @@ func (s *Service) GetAccrual(ctx context.Context, jobOrder model.Order) (model.O
 		log.Printf("read response body error: %s", err.Error())
 		return res, config.ErrUnsupportedResponse
 	}
+	defer resp.Body.Close()
 	AccrRes, err := model.UnmarshalAcrrualResponse(buf)
 	if err != nil {
 		return res, err
