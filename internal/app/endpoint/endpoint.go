@@ -162,7 +162,7 @@ func (e *Endpoint) NewWithdraw(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error in request", http.StatusUnprocessableEntity)
 		return
 	}
-
+	log.Printf("withdraw: %v", wd)
 	err = e.srv.NewWithdraw(r.Context(), wd)
 	if err != nil {
 		switch err {
@@ -202,6 +202,7 @@ func (e *Endpoint) UserBalance(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Printf("balance: %v", res)
 	buf := model.MarshalUserBalanceDoc(res)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
