@@ -64,7 +64,7 @@ type withdrawDoc struct {
 type balanceDoc struct {
 	Balance  points `json:"current"`
 	Accrual  points `json:"-"`
-	Withdraw points `json:"withdraw,omitempty"`
+	Withdraw points `json:"withdrawn,omitempty"`
 }
 
 type withdrawReq struct {
