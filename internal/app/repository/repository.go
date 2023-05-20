@@ -41,7 +41,8 @@ const (
 	*/
 
 	CREATE TABLE IF NOT EXISTS withdraws (
-		order_id	VARCHAR(20) NOT NULL REFERENCES orders,
+		order_id	VARCHAR(20) NOT NULL,
+		user_id		uuid 	 NOT NULL REFERENCES users,
 		regdate		TIMESTAMP WITH TIME ZONE NOT NULL,
 		withdraw	INT NOT NULL		
 	);
@@ -58,8 +59,7 @@ const (
 		    LEFT JOIN 
 			 (SELECT user_id, 
 				 sum(withdraw) wsum
-				FROM orders, withdraws 
-			    WHERE orders.id = withdraws.order_id
+				FROM withdraws 
 			    GROUP BY user_id) AS w 
 	        ON o.user_id = w.user_id);
 
@@ -73,15 +73,12 @@ const (
 	getSessKey      = "SELECT id, user_id, expires FROM session_keys  WHERE id = $1;"
 	addOrder        = "INSERT INTO orders (id, user_id, regdate) VALUES ($1, $2, $3);"
 	getOrder        = "SELECT id, user_id, regdate, COALESCE(accrual, -1) FROM orders WHERE id = $1;"
-	getUserOrders   = "SELECT id, user_id, regdate, COALESCE(accrual, -1) FROM orders WHERE user_id = $1;"
+	getUserOrders   = "SELECT id, user_id, regdate, COALESCE(accrual, -1) FROM orders WHERE user_id = $1 ORDER BY regdate;"
 	getUndoneOrders = "SELECT id, user_id, regdate, COALESCE(accrual, -1) FROM orders WHERE accrual IS NULL;"
 	updateAccrual   = "UPDATE orders SET accrual = $2 where id = $1;"
 	getBalance      = "SELECT user_id, COALESCE(asum,0), COALESCE(wsum,0), COALESCE(bal,0) FROM balances WHERE user_id = $1;"
-	addWithdraw     = "INSERT INTO withdraws (order_id, regdate, withdraw) VALUES ($1, $2, $3);"
-	getWithdraws    = `SELECT w.order_id, w.regdate, w.withdraw 
-					     FROM  withdraws w, orders o
-					     WHERE w.order_id = o.id
-					       AND o.user_id = $1;`
+	addWithdraw     = "INSERT INTO withdraws (order_id, user_id, regdate, withdraw) VALUES ($1, $2, $3, $4);"
+	getWithdraws    = "SELECT order_id, user_id, regdate, withdraw FROM withdraws WHERE user_id = $1 ORDER BY regdate;"
 )
 
 type Repository struct {
@@ -251,7 +248,7 @@ func (r *Repository) GetBalance(ctx context.Context, userid string) (model.Balan
 }
 
 func (r *Repository) AddWithdraw(ctx context.Context, w model.Withdraw) error {
-	_, err := r.pool.Exec(ctx, addWithdraw, w.OrderID, w.GenTime, w.Withdraw)
+	_, err := r.pool.Exec(ctx, addWithdraw, w.OrderID, w.UserID, w.GenTime, w.Withdraw)
 	return err
 }
 
@@ -265,7 +262,7 @@ func (r *Repository) GetWithdrawList(ctx context.Context, userID string) ([]mode
 
 	for rows.Next() {
 		rec := model.Withdraw{}
-		err := rows.Scan(&rec.OrderID, &rec.GenTime, &rec.Withdraw)
+		err := rows.Scan(&rec.OrderID, &rec.UserID, &rec.GenTime, &rec.Withdraw)
 		if err != nil {
 			return nil, err
 		}

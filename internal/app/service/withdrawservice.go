@@ -5,15 +5,16 @@ import (
 	"time"
 	"yp-diploma/internal/app/config"
 	"yp-diploma/internal/app/model"
+	"yp-diploma/internal/app/util"
 )
 
 func (s *Service) NewWithdraw(ctx context.Context, ws model.Withdraw) error {
 	userID := ctx.Value(config.ContextKeyUserID).(string)
+	ws.UserID = userID
 	ws.GenTime = time.Now()
 
-	order, err := s.repo.GetOrder(ctx, ws.OrderID)
-	if err != nil || order.UserID != userID {
-		return config.ErrNoSuchOrder
+	if !util.LuhnCheck(ws.OrderID) {
+		return config.ErrLuhnCheckFailed
 	}
 
 	bal, _ := s.repo.GetBalance(ctx, userID)

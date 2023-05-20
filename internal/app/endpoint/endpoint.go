@@ -136,16 +136,12 @@ func (e *Endpoint) NewOrder(w http.ResponseWriter, r *http.Request) {
 func (e *Endpoint) UserOrders(w http.ResponseWriter, r *http.Request) {
 	res, err := e.srv.GetOrdersList(r.Context())
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		//		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		log.Printf("error getting orders:\n error: %s", err)
 		return
 	}
 	if len(res) == 0 {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNoContent)
-		//		http.Error(w, "no data", http.StatusNoContent)
+		http.Error(w, "no data", http.StatusNoContent)
 		return
 	}
 	buf := model.MarshalUserOrdersDoc(res)
@@ -170,7 +166,7 @@ func (e *Endpoint) NewWithdraw(w http.ResponseWriter, r *http.Request) {
 	err = e.srv.NewWithdraw(r.Context(), wd)
 	if err != nil {
 		switch err {
-		case config.ErrNoSuchOrder:
+		case config.ErrLuhnCheckFailed:
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		case config.ErrNotEnoughAccruals:
 			http.Error(w, err.Error(), http.StatusPaymentRequired)

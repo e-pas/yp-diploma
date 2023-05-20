@@ -34,6 +34,7 @@ type Balance = struct {
 
 type Withdraw = struct {
 	OrderID  string
+	UserID   string
 	GenTime  time.Time
 	Withdraw int
 }
