@@ -60,7 +60,9 @@ func (s *Service) GetOrdersList(ctx context.Context) ([]model.Order, error) {
 	return orderList, nil
 }
 
-func (s *Service) ServeUndoneOrders(ctx context.Context) error {
+// Загружаем и отправляем в пул обработки заказы, которые могли остаться в БД
+// необработанными перезапуска системы.
+func (s *Service) ProceedUndoneOrders(ctx context.Context) error {
 	orderList, err := s.repo.GetUndoneOrders(ctx)
 	if err != nil {
 		return err
