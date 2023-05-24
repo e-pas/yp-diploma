@@ -37,18 +37,24 @@ func NewDispatcher(ctx context.Context, jpool *jobPool, jFunc jobFunc, rFunc res
 
 func (jd *jobDispatcher) Dispatch() {
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(15 * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				// берем текущее состояние заданий в пуле.
+				// берем все заказы в пуле ну обработку.
 				jobs := jd.jobsPool.CopyState()
 				if len(jobs) == 0 {
 					continue
 				}
-				if len(jobs) > 50 {
-					jobs = jobs[:50]
+				// Ограничиваем количество обращений к сервису начисления баллов.
+				// По условиям ТЗ установлено ограничение не более 60 обращений в мин.
+				// В тестовом скрипте, дается только 20 секунд для подключения к сервису
+				// начисления баллов. Поэтому,делим минутный интервал на 15 секундные отрезки
+				// и максимальное количество обращений к серверу делим на 4
+				jobsPerTick := int(config.OrdersPerMinuteToAccrual / 4)
+				if len(jobs) > jobsPerTick {
+					jobs = jobs[:jobsPerTick]
 				}
 				for i := range jobs {
 					// Меняем статус у новых заданий на "Processing" и обновляем его в пуле.

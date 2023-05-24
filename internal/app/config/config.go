@@ -18,11 +18,11 @@ type Config struct {
 type ctxKey string
 
 const (
-	CookieName       string = "LOGININFO"
-	PassCiph         string = "AF12345"
-	ContextKeyUserID ctxKey = ctxKey(CookieName)
-
-	SessionKeyDuration time.Duration = 30 * 24 * time.Hour
+	CookieName               string        = "LOGININFO"
+	PassCiph                 string        = "AF12345"
+	ContextKeyUserID         ctxKey        = ctxKey(CookieName)
+	SessionKeyDuration       time.Duration = 30 * 24 * time.Hour
+	OrdersPerMinuteToAccrual int           = 59
 )
 
 func New() *Config {
