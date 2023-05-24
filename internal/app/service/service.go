@@ -22,3 +22,7 @@ func New(repo *repository.Repository, conf *config.Config) *Service {
 	s.orderDisp = NewDispatcher(context.Background(), s.orderPool, s.GetAccrual, s.SaveResults)
 	return s
 }
+
+func getUserIDFromCtx(ctx context.Context) string {
+	return ctx.Value(config.ContextKeyUserID).(string)
+}

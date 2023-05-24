@@ -111,26 +111,23 @@ func (e *Endpoint) NewOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	str := strings.Split(string(buf), "\n")
-	for _, num := range str {
-		num = strings.TrimSpace(string(num))
-		err = e.srv.NewOrder(r.Context(), num)
-		if err != nil {
-			switch err {
-			case config.ErrOrderRegisteredByUser:
-				http.Error(w, err.Error(), http.StatusOK)
-			case config.ErrLuhnCheckFailed:
-				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-			case config.ErrOrderRegistered:
-				http.Error(w, err.Error(), http.StatusConflict)
-			default:
-				http.Error(w, err.Error(), http.StatusBadRequest)
-			}
-			return
+	num := strings.TrimSpace(string(buf))
+	err = e.srv.NewOrder(r.Context(), num)
+	if err != nil {
+		switch err {
+		case config.ErrOrderRegisteredByUser:
+			http.Error(w, err.Error(), http.StatusOK)
+		case config.ErrLuhnCheckFailed:
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		case config.ErrOrderRegistered:
+			http.Error(w, err.Error(), http.StatusConflict)
+		default:
+			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
-		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(fmt.Sprintf("%s - Ok \n", num)))
+		return
 	}
+	w.WriteHeader(http.StatusAccepted)
+	w.Write([]byte(fmt.Sprintf("%s - Ok\n", num)))
 }
 
 func (e *Endpoint) UserOrders(w http.ResponseWriter, r *http.Request) {

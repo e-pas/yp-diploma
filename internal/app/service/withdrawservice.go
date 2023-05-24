@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Service) NewWithdraw(ctx context.Context, ws model.Withdraw) error {
-	userID := ctx.Value(config.ContextKeyUserID).(string)
+	userID := getUserIDFromCtx(ctx)
 	ws.UserID = userID
 	ws.GenTime = time.Now()
 
@@ -26,12 +26,12 @@ func (s *Service) NewWithdraw(ctx context.Context, ws model.Withdraw) error {
 }
 
 func (s *Service) GetWithdrawList(ctx context.Context) ([]model.Withdraw, error) {
-	userID := ctx.Value(config.ContextKeyUserID).(string)
+	userID := getUserIDFromCtx(ctx)
 	return s.repo.GetWithdrawList(ctx, userID)
 }
 
 func (s *Service) GetBalance(ctx context.Context) (model.Balance, error) {
-	userID := ctx.Value(config.ContextKeyUserID).(string)
+	userID := getUserIDFromCtx(ctx)
 	bal, err := s.repo.GetBalance(ctx, userID)
 	switch err {
 	case nil, config.ErrNoSuchRecord:

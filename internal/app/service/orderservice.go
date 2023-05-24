@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Service) NewOrder(ctx context.Context, orderNum string) error {
-	userID := ctx.Value(config.ContextKeyUserID).(string)
+	userID := getUserIDFromCtx(ctx)
 	if !util.LuhnCheck(orderNum) {
 		return config.ErrLuhnCheckFailed
 	}
@@ -44,7 +44,7 @@ func (s *Service) NewOrder(ctx context.Context, orderNum string) error {
 }
 
 func (s *Service) GetOrdersList(ctx context.Context) ([]model.Order, error) {
-	userID := ctx.Value(config.ContextKeyUserID).(string)
+	userID := getUserIDFromCtx(ctx)
 	orderList, err := s.repo.GetUserOrders(ctx, userID)
 	if err != nil {
 		return nil, err
