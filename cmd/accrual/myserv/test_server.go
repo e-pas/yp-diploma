@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -22,10 +25,33 @@ func main() {
 	flag.StringVar(&listen, "a", ":9090", "HTTP listen addr")
 	flag.Parse()
 	r := chi.NewRouter()
-
 	r.Get("/api/orders/{id}", genAcc)
-	log.Println("Listen on: ", listen)
-	http.ListenAndServe(listen, r)
+	server := &http.Server{
+		Addr:    listen,
+		Handler: r,
+	}
+	go func() {
+		log.Println("Listen on: ", listen)
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+		log.Println("server gracefully shut down")
+	}()
+	waitForShutDown(server)
+}
+
+func waitForShutDown(server *http.Server) {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt)
+	<-sig
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err := server.Shutdown(ctx)
+	if err != nil {
+		log.Fatal("failed shut down server")
+	}
 }
 
 func genAcc(w http.ResponseWriter, r *http.Request) {

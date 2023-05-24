@@ -170,6 +170,7 @@ func (r *Repository) GetOrder(ctx context.Context, orderID string) (model.Order,
 	}
 	return res, nil
 }
+
 func (r *Repository) GetUserOrders(ctx context.Context, userID string) ([]model.Order, error) {
 	return r.getOrderList(ctx, getUserOrders, userID)
 }

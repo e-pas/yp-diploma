@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 	"yp-diploma/internal/app/config"
 	"yp-diploma/internal/app/endpoint"
 	"yp-diploma/internal/app/mware"
@@ -27,9 +30,9 @@ func New() *App {
 	a := &App{}
 	a.c = config.New()
 	a.db = repository.New()
-	a.lh = mware.NewLoginHandler(a.db)
 	a.s = service.New(a.db, a.c)
 	a.e = endpoint.New(a.c, a.s)
+	a.lh = mware.NewLoginHandler(config.CookieName, a.s)
 	a.r = chi.NewRouter()
 
 	a.r.Use(middleware.RealIP)
@@ -55,15 +58,46 @@ func New() *App {
 }
 
 func (a *App) Run() error {
+
 	err := a.db.Init(context.Background(), a.c.PgConnString)
 	if err != nil {
 		return err
 	}
-	err = a.s.ServeUndoneOrders(context.Background())
+	err = a.s.ProceedUndoneOrders(context.Background())
 	if err != nil {
 		return err
 	}
-	log.Println("service listening at:", a.c.Listen)
-	http.ListenAndServe(a.c.Listen, a.r)
+
+	server := newServer(a.c.Listen, a.r)
+	go func() {
+		log.Println("service listening at:", a.c.Listen)
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+		log.Println("server gracefully shut down")
+	}()
+	waitForShutDown(server)
+
 	return nil
+}
+
+func newServer(addr string, r chi.Router) *http.Server {
+	return &http.Server{
+		Addr:    addr,
+		Handler: r,
+	}
+}
+
+func waitForShutDown(server *http.Server) {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt)
+	<-sig
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err := server.Shutdown(ctx)
+	if err != nil {
+		log.Fatal("failed shut down server")
+	}
 }

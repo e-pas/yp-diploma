@@ -67,6 +67,14 @@ func (s *Service) genSessKey(ctx context.Context, user model.User) string {
 	return cryptKey
 }
 
+func (s *Service) VerifySessionKey(ctx context.Context, sessionKey string) (string, error) {
+	key, err := s.repo.GetSessKey(ctx, sessionKey)
+	if err != nil || time.Now().After(key.Expires) {
+		return "", err
+	}
+	return key.UserID, nil
+}
+
 func CheckPasswd(password, hash string) bool {
 	pwdHash := sha256.Sum256([]byte(password))
 	return hex.EncodeToString(pwdHash[:]) == hash

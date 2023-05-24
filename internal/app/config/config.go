@@ -15,12 +15,12 @@ type Config struct {
 	AccrualSystem string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 }
 
-type ctxKey int
+type ctxKey string
 
 const (
 	CookieName       string = "LOGININFO"
 	PassCiph         string = "AF12345"
-	ContextKeyUserID ctxKey = 1
+	ContextKeyUserID ctxKey = ctxKey(CookieName)
 
 	SessionKeyDuration time.Duration = 30 * 24 * time.Hour
 )

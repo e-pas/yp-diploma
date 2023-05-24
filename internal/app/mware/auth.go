@@ -4,30 +4,30 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"time"
 
 	"yp-diploma/internal/app/config"
-	"yp-diploma/internal/app/model"
 	"yp-diploma/internal/app/util"
 )
 
-type loginsaver interface {
-	GetSessKey(ctx context.Context, key string) (model.SessKey, error)
+type loginVerifyer interface {
+	VerifySessionKey(ctx context.Context, key string) (string, error)
 }
 
 type LoginHandler struct {
-	repo loginsaver
+	keyName string
+	lv      loginVerifyer
 }
 
-func NewLoginHandler(repo loginsaver) *LoginHandler {
+func NewLoginHandler(keyName string, lv loginVerifyer) *LoginHandler {
 	return &LoginHandler{
-		repo: repo,
+		keyName: keyName,
+		lv:      lv,
 	}
 }
 
 func (lh *LoginHandler) AuthUser(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		usercookie, err := r.Cookie(config.CookieName)
+		usercookie, err := r.Cookie(lh.keyName)
 		if err != nil {
 			http.Error(w, "Unautorized", http.StatusUnauthorized)
 			return
@@ -47,14 +47,14 @@ func (lh *LoginHandler) AuthUser(next http.Handler) http.Handler {
 			return
 		}
 
-		key, err := lh.repo.GetSessKey(r.Context(), sessKey)
-		if err != nil || time.Now().After(key.Expires) {
-			log.Println("error geting session key or session key expired", err)
+		key, err := lh.lv.VerifySessionKey(r.Context(), sessKey)
+		if err != nil {
+			log.Println("error verifying session key: ", err)
 			http.Error(w, "Unautorized", http.StatusUnauthorized)
 			return
 		}
-		ctx := context.WithValue(r.Context(), config.ContextKeyUserID, key.UserID)
-		log.Printf("User id: %s", key.UserID)
+		ctx := context.WithValue(r.Context(), config.ContextKeyUserID, key)
+		log.Printf("User id: %s\n", key)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)

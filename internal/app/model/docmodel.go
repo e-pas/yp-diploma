@@ -12,15 +12,17 @@ import (
 type docTime time.Time
 type points uint
 
+const pointDivider int = 100
+
 func (dt docTime) MarshalJSON() ([]byte, error) {
 	res := fmt.Sprintf("\"%s\"", time.Time(dt).Format("2006-01-02T15:04:05-07:00"))
 	return []byte(res), nil
 }
 
 func (p points) MarshalJSON() ([]byte, error) {
-	res := fmt.Sprintf("%d.%d", p/100, p%100)
-	if p%100 == 0 {
-		res = fmt.Sprintf("%d", p/100)
+	res := fmt.Sprintf("%d.%d", int(p)/pointDivider, int(p)%pointDivider)
+	if int(p)%pointDivider == 0 {
+		res = fmt.Sprintf("%d", int(p)/pointDivider)
 	}
 	return []byte(res), nil
 }
@@ -44,7 +46,7 @@ func (p *points) UnmarshalJSON(data []byte) error {
 	if res1 < 0 || res2 < 0 {
 		return config.ErrInvalidData
 	}
-	*p = points(res1*100 + res2)
+	*p = points(res1*pointDivider + res2)
 	return nil
 }
 
