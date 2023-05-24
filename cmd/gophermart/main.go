@@ -10,5 +10,7 @@ func main() {
 	app := app.New()
 
 	err := app.Run()
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
+	}
 }
