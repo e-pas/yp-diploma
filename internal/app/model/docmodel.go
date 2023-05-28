@@ -3,8 +3,8 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
-	"strings"
 	"time"
 	"yp-diploma/internal/app/config"
 )
@@ -20,7 +20,7 @@ func (dt docTime) MarshalJSON() ([]byte, error) {
 }
 
 func (p points) MarshalJSON() ([]byte, error) {
-	res := fmt.Sprintf("%d.%d", int(p)/pointDivider, int(p)%pointDivider)
+	res := fmt.Sprint(float64(p) / float64(pointDivider))
 	if int(p)%pointDivider == 0 {
 		res = fmt.Sprintf("%d", int(p)/pointDivider)
 	}
@@ -28,25 +28,11 @@ func (p points) MarshalJSON() ([]byte, error) {
 }
 
 func (p *points) UnmarshalJSON(data []byte) error {
-	parts := strings.Split(string(data), ".")
-	if len(parts) > 2 {
+	res, err := strconv.ParseFloat(string(data), 64)
+	if err != nil {
 		return config.ErrInvalidData
 	}
-	if len(parts) == 1 {
-		parts = append(parts, "0")
-	}
-	res1, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return err
-	}
-	res2, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return err
-	}
-	if res1 < 0 || res2 < 0 {
-		return config.ErrInvalidData
-	}
-	*p = points(res1*pointDivider + res2)
+	*p = points(math.Round(res * float64(pointDivider)))
 	return nil
 }
 
