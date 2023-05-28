@@ -50,12 +50,11 @@ func (e *Endpoint) Register(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case config.ErrUserNameBusy:
 			http.Error(w, err.Error(), http.StatusConflict)
-			return
 		default:
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			log.Printf("error creating user: %s\n error: %s", req["login"], err.Error())
-			return
 		}
+		return
 	}
 	cookie := http.Cookie{
 		Name:    config.CookieName,

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sync"
 	"time"
 	"yp-diploma/internal/app/config"
 	"yp-diploma/internal/app/model"
@@ -16,6 +17,10 @@ func (s *Service) NewWithdraw(ctx context.Context, ws model.Withdraw) error {
 	if !util.LuhnCheck(ws.OrderID) {
 		return config.ErrLuhnCheckFailed
 	}
+
+	mu := sync.Mutex{}
+	mu.Lock()
+	defer mu.Unlock()
 
 	bal, _ := s.repo.GetBalance(ctx, userID)
 	if bal.Balance < ws.Withdraw {
