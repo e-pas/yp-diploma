@@ -9,6 +9,8 @@ import (
 	"yp-diploma/internal/app/util"
 )
 
+var mu sync.Mutex
+
 func (s *Service) NewWithdraw(ctx context.Context, ws model.Withdraw) error {
 	userID := getUserIDFromCtx(ctx)
 	ws.UserID = userID
@@ -18,7 +20,6 @@ func (s *Service) NewWithdraw(ctx context.Context, ws model.Withdraw) error {
 		return config.ErrLuhnCheckFailed
 	}
 
-	mu := sync.Mutex{}
 	mu.Lock()
 	defer mu.Unlock()
 
