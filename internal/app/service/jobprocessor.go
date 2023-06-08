@@ -47,9 +47,6 @@ func NewProcessor(job jobFunc) *Processor {
 
 func (p *Processor) StartWorkers(ctx context.Context) {
 	p.wg = &sync.WaitGroup{}
-	p.jobCh = make(chan model.Order)
-	p.resCh = make(chan model.Order)
-	p.errCh = make(chan JobError)
 
 	for ik := 0; ik < maxWorkers; ik++ {
 		w := p.workers[ik]
@@ -61,21 +58,13 @@ func (p *Processor) StartWorkers(ctx context.Context) {
 	}
 }
 
-func (w *worker) Start(ctx context.Context, wg *sync.WaitGroup) {
-	for order := range w.jobCh {
-		newOrder, err := w.job(ctx, order)
-		if err != nil {
-			w.errCh <- JobError{Err: err, Job: order}
-		} else {
-			w.resCh <- newOrder
-		}
-	}
-	wg.Done()
-}
-
 func (p *Processor) ProceedWith(ctx context.Context, jobs []model.Order) ([]model.Order, []JobError) {
 	res := make([]model.Order, 0)
 	err := make([]JobError, 0)
+
+	p.jobCh = make(chan model.Order)
+	p.resCh = make(chan model.Order)
+	p.errCh = make(chan JobError)
 
 	//  colecting results, errors
 	resWg := sync.WaitGroup{}
@@ -93,7 +82,6 @@ func (p *Processor) ProceedWith(ctx context.Context, jobs []model.Order) ([]mode
 		resWg.Done()
 	}()
 
-	p.jobCh = make(chan model.Order)
 	p.StartWorkers(ctx)
 	go func() {
 	loop:
@@ -112,4 +100,16 @@ func (p *Processor) ProceedWith(ctx context.Context, jobs []model.Order) ([]mode
 	close(p.errCh)
 	resWg.Wait()
 	return res, err
+}
+
+func (w *worker) Start(ctx context.Context, wg *sync.WaitGroup) {
+	for order := range w.jobCh {
+		newOrder, err := w.job(ctx, order)
+		if err != nil {
+			w.errCh <- JobError{Err: err, Job: order}
+		} else {
+			w.resCh <- newOrder
+		}
+	}
+	wg.Done()
 }

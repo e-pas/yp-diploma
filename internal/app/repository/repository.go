@@ -53,15 +53,15 @@ const (
 			 w.wsum, 
 			 (COALESCE(o.asum, 0) - COALESCE(w.wsum, 0)) bal 
 		    FROM (SELECT user_id, 
-				 sum(accrual) asum
-			    FROM orders
-			    GROUP BY user_id) AS o
-		    LEFT JOIN 
-			 (SELECT user_id, 
-				 sum(withdraw) wsum
-				FROM withdraws 
-			    GROUP BY user_id) AS w 
-	        ON o.user_id = w.user_id);
+				 		sum(accrual) asum
+			        FROM orders
+			        GROUP BY user_id) AS o
+		    	LEFT JOIN 
+			 	(SELECT user_id, 
+				        sum(withdraw) wsum
+				   FROM withdraws 
+			       GROUP BY user_id) AS w 
+	        	ON o.user_id = w.user_id);
 
 	/* erase old session keys */				
 	DELETE FROM session_keys WHERE expires < NOW();
